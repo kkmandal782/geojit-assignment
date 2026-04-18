@@ -9,7 +9,8 @@ Spring Boot application that:
 * Queues them for async processing
 * Sends them to an external HTTPS endpoint
 * Uses Redis for caching
-* Secured with Basic Auth
+* Secured with Basic Authentication
+* Processes jobs using a scheduled background worker
 
 ---
 
@@ -17,23 +18,24 @@ Spring Boot application that:
 
 * Java 21
 * Spring Boot
-* Spring Security
-* Spring Data JPA
-* Redis (cache)
-* MySQL (database)
+* Spring Security (Basic Auth)
+* Spring Data JPA (Hibernate)
+* Spring Cache + Redis
+* MySQL (Database)
 * Docker & Docker Compose
+* Maven
 
 ---
 
 ## How to Run
 
-### Option 1: Docker Compose (Recommended)
+### Option 1: Docker Compose
 
 ```bash
 docker-compose up --build
 ```
 
-Services:
+### Services:
 
 * App → http://localhost:8080
 * MySQL → localhost:3307
@@ -42,14 +44,11 @@ Services:
 
 ````
 
----
-
 ## Authentication
 
-| Username | Password | Role  |
-|--------|--------|------|
-| admin  | password | ADMIN |
-| user   | password | USER  |
+| Username | Password | Role |
+|----------|----------|------|
+| admin    | password | USER |
 
 ---
 
@@ -93,28 +92,72 @@ Requires: `ADMIN`
 
 * Jobs added to in-memory queue
 * Scheduler processes queue every 5 seconds
+* Processes queued jobs in background
 * Calls external HTTPS endpoint asynchronously
 
 ### Redis Caching
 
-* `/jobs` response cached
+* /jobs response is cached using Redis
+* Cache key: jobs::all
 * TTL: 10 minutes
-* Cache invalidated on new job
+* Cache is invalidated when a new job is created
 
 ### Validation
 
 * Request validation using `@Valid`
-* Custom error responses
+* Constraints handled via Jakarta Validation
 
 ### Centralized Exception Handling
 
 * Handles:
 
-  * Validation errors
-  * Duplicate jobs
-  * Date parsing errors
+  * Validation errors (MethodArgumentNotValidException)
+  * Duplicate job creation (JobAlreadyExistException)
+  * Date parsing errors (DateTimeParseException)
 
 ---
+
+## Testing Strategy
+
+The project includes both Unit Testing and Integration Testing to ensure reliability and correctness.
+
+---
+
+### Unit Testing
+
+* Framework: **JUnit 5 + Mockito**
+* Scope:
+  - Service layer logic
+  - Business rules validation
+  - Exception handling
+
+#### Example Coverage:
+- Duplicate job detection
+- Successful job creation
+- Repository interaction verification
+
+---
+
+### Integration Testing
+
+* Framework: **Rest Assured**
+* Scope:
+  - End-to-end API testing
+  - Controller → Service → Database flow
+  - Authentication & authorization checks
+  - Validation and exception responses
+
+#### Covered Scenarios:
+- Job submission success
+- Unauthorized access (401)
+- Role-based access control
+- Validation failure (400)
+- Duplicate job handling
+- Invalid date format handling
+- Redis caching performance validation
+
+---
+
 
 ## Database Configuration
 
@@ -131,11 +174,12 @@ SPRING_JPA_HIBERNATE_DDL_AUTO=update
 
 * Redis used as cache store
 * TTL: 10 minutes
+
 ```properties 
 
-SPRING_CACHE_TYPE=redis;
-SPRING_DATA_REDIS_HOST=redis;
-SPRING_DATA_REDIS_PORT=6379;
+SPRING_CACHE_TYPE=redis
+SPRING_DATA_REDIS_HOST=redis
+SPRING_DATA_REDIS_PORT=6379
 
 ```
 
@@ -146,13 +190,13 @@ SPRING_DATA_REDIS_PORT=6379;
 Build image:
 
 ```bash
-docker build -t request-processor .
+docker build -t request-processor-service .
 ```
 
 Run container:
 
 ```bash
-docker run -p 8080:8080 request-processor
+docker run -p 8080:8080 request-processor-service
 ```
 
 ---
@@ -176,4 +220,6 @@ dto/
 exception/
 config/
 scheduler/
+mapper/
+cache/
 ```

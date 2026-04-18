@@ -16,28 +16,43 @@ import java.util.List;
 
 @Service
 public class ProcessingJobService {
+
+    private static final Logger log = LoggerFactory.getLogger(ProcessingJobService.class);
+
     private final ProcessingJobRepository processingJobRepository;
-    private final Logger log = LoggerFactory.getLogger(ProcessingJobService.class);
 
     public ProcessingJobService(ProcessingJobRepository processingJobRepository){
         this.processingJobRepository = processingJobRepository;
     }
 
-
     @CacheEvict(value = "jobs", allEntries = true)
     public ProcessingJobResponseDto createProcessingJob(ProcessingJobRequestDto processingJobRequestDto){
+
+        log.info("Creating processing job with name={}", processingJobRequestDto.getName());
+
         if(processingJobRepository.existsByJobName(processingJobRequestDto.getName())){
-            throw new JobAlreadyExistException("Process Job Already Exists !"+processingJobRequestDto.getName());
+            log.warn("Duplicate job creation attempt for name={}", processingJobRequestDto.getName());
+            throw new JobAlreadyExistException("Process Job Already Exists !" + processingJobRequestDto.getName());
         }
 
-        ProcessingJob processingJob = processingJobRepository.save(ProcessingJobMapper.toModel(processingJobRequestDto));
+        ProcessingJob processingJob = processingJobRepository.save(
+                ProcessingJobMapper.toModel(processingJobRequestDto)
+        );
+
+        log.info("Processing job created successfully with id={}", processingJob.getId());
+
         return ProcessingJobMapper.toDTO(processingJob);
     }
 
-    @Cacheable(value = "jobs",key = "'all'")
+    @Cacheable(value = "jobs", key = "'all'")
     public List<ProcessingJobResponseDto> findAll(){
-        log.info("[REDIS]: Cache miss - fetching from DB");
+
+        log.debug("Cache miss for 'jobs', fetching from database");
+
         List<ProcessingJob> jobs = processingJobRepository.findAll();
+
+        log.debug("Fetched {} processing jobs from database", jobs.size());
+
         return jobs.stream()
                 .map(ProcessingJobMapper::toDTO)
                 .toList();
