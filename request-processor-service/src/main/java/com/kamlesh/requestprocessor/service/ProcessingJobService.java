@@ -20,9 +20,11 @@ public class ProcessingJobService {
     private static final Logger log = LoggerFactory.getLogger(ProcessingJobService.class);
 
     private final ProcessingJobRepository processingJobRepository;
+    private final QueueService queueService;
 
-    public ProcessingJobService(ProcessingJobRepository processingJobRepository){
+    public ProcessingJobService(ProcessingJobRepository processingJobRepository, QueueService queueService){
         this.processingJobRepository = processingJobRepository;
+        this.queueService = queueService;
     }
 
     @CacheEvict(value = "jobs", allEntries = true)
@@ -34,7 +36,9 @@ public class ProcessingJobService {
             log.warn("Duplicate job creation attempt for name={}", processingJobRequestDto.getName());
             throw new JobAlreadyExistException("Process Job Already Exists !" + processingJobRequestDto.getName());
         }
-
+        // Adding in queue for Async processing
+        queueService.add(processingJobRequestDto);
+        // Inserting in db
         ProcessingJob processingJob = processingJobRepository.save(
                 ProcessingJobMapper.toModel(processingJobRequestDto)
         );

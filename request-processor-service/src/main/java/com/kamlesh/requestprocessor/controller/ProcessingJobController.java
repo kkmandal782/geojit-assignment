@@ -16,11 +16,9 @@ import java.util.List;
 @RestController
 @RequestMapping(value = "/", produces = "application/json")
 public class ProcessingJobController {
-    private final QueueService queueService;
     private final ProcessingJobService processingJobService;
     private static final Logger logger = LoggerFactory.getLogger(ProcessingJobController.class);
-    public ProcessingJobController(QueueService queueService, ProcessingJobService processingJobService){
-        this.queueService = queueService;
+    public ProcessingJobController(ProcessingJobService processingJobService){
         this.processingJobService = processingJobService;
     }
     @PostMapping(value = "/submit", consumes = "application/json")
@@ -28,7 +26,6 @@ public class ProcessingJobController {
 
         logger.info("Received job submission request: {}",processingJobRequestDto);
 
-        queueService.add(processingJobRequestDto);
         logger.debug("Job pushed to queue successfully");
 
         processingJobService.createProcessingJob(processingJobRequestDto);

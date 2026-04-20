@@ -23,6 +23,9 @@ class ProcessingJobServiceTest {
     @Mock
     private ProcessingJobRepository repository;
 
+    @Mock
+    private QueueService queueService;
+
     @InjectMocks
     private ProcessingJobService service;
 
