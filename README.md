@@ -185,21 +185,6 @@ SPRING_DATA_REDIS_PORT=6379
 
 ---
 
-## Docker
-
-Build image:
-
-```bash
-docker build -t request-processor-service .
-```
-
-Run container:
-
-```bash
-docker run -p 8080:8080 request-processor-service
-```
-
----
 
 ## Running Tests
 
